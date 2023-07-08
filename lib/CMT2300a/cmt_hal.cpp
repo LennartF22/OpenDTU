@@ -165,15 +165,12 @@ void cmt_hal::read_fifo(uint8_t* buf, uint16_t len)
         .cmd = 0,
         .addr = 0,
         .length = 0,
-        .rxlength = 8,
+        .rxlength = static_cast<size_t>(len << 3),
         .user = NULL,
         .tx_buffer = NULL,
-        .rx_buffer = NULL
+        .rx_buffer = buf
     };
-    for (uint16_t i = 0; i < len; i++) {
-        t.rx_buffer = buf + i;
-        ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
-    }
+    ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
 
     release_spi();
 }
@@ -186,16 +183,13 @@ void cmt_hal::write_fifo(const uint8_t* buf, uint16_t len)
         .flags = 0,
         .cmd = 0,
         .addr = 0,
-        .length = 8,
+        .length = static_cast<size_t>(len << 3),
         .rxlength = 0,
         .user = NULL,
-        .tx_buffer = NULL,
+        .tx_buffer = buf,
         .rx_buffer = NULL
     };
-    for (uint16_t i = 0; i < len; i++) {
-        t.tx_buffer = buf + i;
-        ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
-    }
+    ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
 
     release_spi();
 }
