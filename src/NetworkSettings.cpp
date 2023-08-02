@@ -8,9 +8,8 @@
 #include "PinMapping.h"
 #include "Utils.h"
 #include "defaults.h"
+#include "ETHSPI.h"
 #include <ETH.h>
-
-#include <driver/spi_master.h>
 
 NetworkSettingsClass::NetworkSettingsClass()
     : apIp(192, 168, 4, 1)
@@ -87,9 +86,6 @@ void NetworkSettingsClass::NetworkEvent(WiFiEvent_t event)
         break;
     }
 }
-
-#include "driver/uart.h"
-#include "ETHSPI.h"
 
 bool NetworkSettingsClass::onEvent(NetworkEventCb cbEvent, network_event event)
 {

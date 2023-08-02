@@ -71,8 +71,8 @@ void ETHSPIClass::begin(int8_t pin_sclk, int8_t pin_mosi, int8_t pin_miso, int8_
         .spics_io_num = pin_cs,
         .flags = 0,
         .queue_size = 20,
-        .pre_cb = NULL,
-        .post_cb = NULL
+        .pre_cb = nullptr,
+        .post_cb = nullptr
     };
 
     spi_device_handle_t spi;
