@@ -18,11 +18,6 @@ ETHSPIClass::ETHSPIClass() :
 
 }
 
-static void interrupt_stub()
-{
-
-}
-
 void ETHSPIClass::begin(int8_t pin_sclk, int8_t pin_mosi, int8_t pin_miso, int8_t pin_cs, int8_t pin_int, int8_t pin_rst)
 {
     gpio_reset_pin(static_cast<gpio_num_t>(pin_rst));
@@ -36,7 +31,7 @@ void ETHSPIClass::begin(int8_t pin_sclk, int8_t pin_mosi, int8_t pin_miso, int8_
     gpio_set_pull_mode(static_cast<gpio_num_t>(pin_miso), GPIO_PULLUP_ONLY);
 
     // Workaround, because calling gpio_install_isr_service directly causes issues with attachInterrupt later
-    attachInterrupt(digitalPinToInterrupt(pin_int), interrupt_stub, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(pin_int), nullptr, CHANGE);
     detachInterrupt(digitalPinToInterrupt(pin_int));
     gpio_reset_pin(static_cast<gpio_num_t>(pin_int));
     gpio_set_pull_mode(static_cast<gpio_num_t>(pin_int), GPIO_PULLUP_ONLY);
