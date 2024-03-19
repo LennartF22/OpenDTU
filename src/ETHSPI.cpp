@@ -6,6 +6,26 @@
 void tcpipInit();
 void add_esp_interface_netif(esp_interface_t interface, esp_netif_t* esp_netif);
 
+esp_err_t (*init_orig)(esp_eth_phy_t *phy);
+
+esp_err_t init_hook(esp_eth_phy_t *phy) {
+    esp_eth_mediator_t *mediator = *reinterpret_cast<esp_eth_mediator_t**>(phy + 1);
+
+    uint32_t reg;
+    mediator->phy_reg_read(mediator, 0, 0x002E0000, &reg);
+    reg &= 0b10000111;
+    reg |= 0b01011000; // 100Mbps full duplex
+    mediator->phy_reg_write(mediator, 0, 0x002E0000, reg);
+
+    return init_orig(phy);
+}
+
+esp_err_t (*negotiate_orig)(esp_eth_phy_t *phy);
+
+esp_err_t negotiate_hook(esp_eth_phy_t *phy) {
+    return ESP_OK;
+}
+
 ETHSPIClass::ETHSPIClass() :
     eth_handle(nullptr),
     eth_netif(nullptr)
@@ -89,6 +109,12 @@ void ETHSPIClass::begin(int8_t pin_sclk, int8_t pin_mosi, int8_t pin_miso, int8_
     phy_config.reset_gpio_num = -1;
     esp_eth_phy_t *phy = esp_eth_phy_new_w5500(&phy_config);
 
+    // Hack
+    init_orig = phy->init;
+    phy->init = init_hook;
+    negotiate_orig = phy->negotiate;
+    phy->negotiate = negotiate_hook;
+
     esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mac, phy);
     ESP_ERROR_CHECK(esp_eth_driver_install(&eth_config, &eth_handle));
 
@@ -113,8 +139,18 @@ String ETHSPIClass::macAddress()
 {
     uint8_t mac_addr[6] = {0, 0, 0, 0, 0, 0};
     esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, mac_addr);
-    char mac_addr_str[24];
-    snprintf(mac_addr_str, sizeof(mac_addr_str), "%02X:%02X:%02X:%02X:%02X:%02X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    eth_speed_t speed;
+    esp_eth_ioctl(eth_handle, ETH_CMD_G_SPEED, &speed);
+    eth_duplex_t duplex;
+    esp_eth_ioctl(eth_handle, ETH_CMD_G_DUPLEX_MODE, &duplex);
+    char mac_addr_str[24 + 24];
+    snprintf(
+        mac_addr_str, sizeof(mac_addr_str),
+        "%02X:%02X:%02X:%02X:%02X:%02X %dMbps %s duplex",
+        mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5],
+        speed == ETH_SPEED_10M ? 10 : 100,
+        duplex == ETH_DUPLEX_HALF ? "half" : "full"
+    );
     return String(mac_addr_str);
 }
 
