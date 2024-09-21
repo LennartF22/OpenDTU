@@ -31,11 +31,36 @@ void InverterSettingsClass::init(Scheduler& scheduler)
 
     if (PinMapping.isValidNrf24Config() || PinMapping.isValidCmt2300Config()) {
         if (PinMapping.isValidNrf24Config()) {
-            auto spi_bus = SpiManagerInst.claim_bus_arduino();
-            ESP_ERROR_CHECK(spi_bus ? ESP_OK : ESP_FAIL);
+            auto bus_config = std::make_shared<SpiBusConfig>(
+                static_cast<gpio_num_t>(pin.nrf24_mosi),
+                static_cast<gpio_num_t>(pin.nrf24_miso),
+                static_cast<gpio_num_t>(pin.nrf24_clk)
+            );
 
-            SPIClass* spiClass = new SPIClass(*spi_bus);
-            spiClass->begin(pin.nrf24_clk, pin.nrf24_miso, pin.nrf24_mosi, pin.nrf24_cs);
+            gpio_reset_pin(static_cast<gpio_num_t>(pin.nrf24_cs));
+            spi_device_interface_config_t device_config {
+                .command_bits = 0,
+                .address_bits = 0,
+                .dummy_bits = 0,
+                .mode = 0, // SPI mode 0
+                .duty_cycle_pos = 0,
+                .cs_ena_pretrans = 0,
+                .cs_ena_posttrans = 0,
+                .clock_speed_hz = RF24_SPI_SPEED, // 10 MHz by default
+                .input_delay_ns = 0,
+                .spics_io_num = static_cast<gpio_num_t>(pin.nrf24_cs),
+                .flags = 0,
+                .queue_size = 1,
+                .pre_cb = nullptr,
+                .post_cb = nullptr,
+            };
+
+            spi_device_handle_t dev = SpiManagerInst.alloc_device("", bus_config, device_config);
+            if (!dev)
+                ESP_ERROR_CHECK(ESP_FAIL);
+
+            ESPSPIClass *spiClass = new ESPSPIClass();
+            spiClass->begin(dev);
             Hoymiles.initNRF(spiClass, pin.nrf24_en, pin.nrf24_irq);
         }
 

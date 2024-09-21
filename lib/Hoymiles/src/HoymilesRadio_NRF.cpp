@@ -8,12 +8,12 @@
 #include <Every.h>
 #include <FunctionalInterrupt.h>
 
-void HoymilesRadio_NRF::init(SPIClass* initialisedSpiBus, const uint8_t pinCE, const uint8_t pinIRQ)
+void HoymilesRadio_NRF::init(ESPSPIClass *initialisedSpiBus, const uint8_t pinCE, const uint8_t pinIRQ)
 {
     _dtuSerial.u64 = 0;
 
     _spiPtr.reset(initialisedSpiBus);
-    _radio.reset(new RF24(pinCE, initialisedSpiBus->pinSS()));
+    _radio.reset(new RF24(pinCE, -1));
 
     _radio->begin(_spiPtr.get());
 

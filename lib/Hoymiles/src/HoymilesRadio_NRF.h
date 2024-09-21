@@ -13,7 +13,7 @@
 
 class HoymilesRadio_NRF : public HoymilesRadio {
 public:
-    void init(SPIClass* initialisedSpiBus, const uint8_t pinCE, const uint8_t pinIRQ);
+    void init(ESPSPIClass *initialisedSpiBus, const uint8_t pinCE, const uint8_t pinIRQ);
     void loop();
     void setPALevel(const rf24_pa_dbm_e paLevel);
 
@@ -32,7 +32,7 @@ private:
 
     void sendEsbPacket(CommandAbstract& cmd);
 
-    std::unique_ptr<SPIClass> _spiPtr;
+    std::unique_ptr<ESPSPIClass> _spiPtr;
     std::unique_ptr<RF24> _radio;
     uint8_t _rxChLst[5] = { 3, 23, 40, 61, 75 };
     uint8_t _rxChIdx = 0;
