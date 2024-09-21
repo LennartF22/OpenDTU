@@ -55,7 +55,7 @@ void InverterSettingsClass::init(Scheduler& scheduler)
                 .post_cb = nullptr,
             };
 
-            spi_device_handle_t dev = SpiManagerInst.alloc_device("", bus_config, device_config);
+            spi_device_handle_t dev = SpiManagerInst.alloc_device("RF", bus_config, device_config);
             if (!dev)
                 ESP_ERROR_CHECK(ESP_FAIL);
 

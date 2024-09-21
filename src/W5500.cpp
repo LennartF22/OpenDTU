@@ -46,7 +46,7 @@ W5500::W5500(int8_t pin_mosi, int8_t pin_miso, int8_t pin_sclk, int8_t pin_cs, i
         .post_cb = nullptr,
     };
 
-    spi_device_handle_t spi = SpiManagerInst.alloc_device("", bus_config, device_config);
+    spi_device_handle_t spi = SpiManagerInst.alloc_device("ETH", bus_config, device_config);
     if (!spi)
         ESP_ERROR_CHECK(ESP_FAIL);
 
