@@ -78,7 +78,7 @@ void NetworkSettingsClass::NetworkEvent(const WiFiEvent_t event, WiFiEventInfo_t
         raiseEvent(network_event::NETWORK_CONNECTED);
         break;
     case ARDUINO_EVENT_ETH_GOT_IP:
-        MessageOutput.printf("ETH got IP: %s\r\n", ETH.localIP().toString().c_str());
+        MessageOutput.printf("ETH got IP: %s\r\n", configuredETH()->localIP().toString().c_str());
         if (_networkMode == network_mode::Ethernet) {
             raiseEvent(network_event::NETWORK_GOT_IP);
         }
@@ -299,52 +299,35 @@ void NetworkSettingsClass::applyConfig()
 
 void NetworkSettingsClass::setHostname()
 {
-    MessageOutput.print("Setting Hostname... ");
-    if (_networkMode == network_mode::WiFi) {
-        if (WiFi.hostname(getHostname())) {
+    NetworkInterface *interface = activeInterface();
+    if (interface) {
+        MessageOutput.printf("Setting %s hostname... ", activeInterfaceName().c_str());
+        if (interface->setHostname(getHostname().c_str())) {
             MessageOutput.println("done");
         } else {
             MessageOutput.println("failed");
         }
 
-        // Evil bad hack to get the hostname set up correctly
-        WiFi.mode(WIFI_MODE_APSTA);
-        WiFi.mode(WIFI_MODE_STA);
-        setupMode();
-    } else if (_networkMode == network_mode::Ethernet) {
-        if (ETH.setHostname(getHostname().c_str())) {
-            MessageOutput.println("done");
-        } else {
-            MessageOutput.println("failed");
+        if (_networkMode == network_mode::WiFi) {
+            // Evil bad hack to get the hostname set up correctly
+            WiFi.mode(WIFI_MODE_APSTA);
+            WiFi.mode(WIFI_MODE_STA);
+            setupMode();
         }
     }
 }
 
 void NetworkSettingsClass::setStaticIp()
 {
-    if (_networkMode == network_mode::WiFi) {
+    NetworkInterface *interface = activeInterface();
+    if (interface) {
         if (Configuration.get().WiFi.Dhcp) {
-            MessageOutput.print("Configuring WiFi STA DHCP IP... ");
-            WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
+            MessageOutput.printf("Configuring %s DHCP IP... ", activeInterfaceName().c_str());
+            interface->config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
             MessageOutput.println("done");
         } else {
-            MessageOutput.print("Configuring WiFi STA static IP... ");
-            WiFi.config(
-                IPAddress(Configuration.get().WiFi.Ip),
-                IPAddress(Configuration.get().WiFi.Gateway),
-                IPAddress(Configuration.get().WiFi.Netmask),
-                IPAddress(Configuration.get().WiFi.Dns1),
-                IPAddress(Configuration.get().WiFi.Dns2));
-            MessageOutput.println("done");
-        }
-    } else if (_networkMode == network_mode::Ethernet) {
-        if (Configuration.get().WiFi.Dhcp) {
-            MessageOutput.print("Configuring Ethernet DHCP IP... ");
-            ETH.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
-            MessageOutput.println("done");
-        } else {
-            MessageOutput.print("Configuring Ethernet static IP... ");
-            ETH.config(
+            MessageOutput.printf("Configuring %s static IP... ", activeInterfaceName().c_str());
+            interface->config(
                 IPAddress(Configuration.get().WiFi.Ip),
                 IPAddress(Configuration.get().WiFi.Gateway),
                 IPAddress(Configuration.get().WiFi.Netmask),
@@ -357,72 +340,32 @@ void NetworkSettingsClass::setStaticIp()
 
 IPAddress NetworkSettingsClass::localIP() const
 {
-    switch (_networkMode) {
-    case network_mode::Ethernet:
-        return ETH.localIP();
-        break;
-    case network_mode::WiFi:
-        return WiFi.localIP();
-        break;
-    default:
-        return INADDR_NONE;
-    }
+    const NetworkInterface *interface = activeInterface();
+    return interface ? interface->localIP() : INADDR_NONE;
 }
 
 IPAddress NetworkSettingsClass::subnetMask() const
 {
-    switch (_networkMode) {
-    case network_mode::Ethernet:
-        return ETH.subnetMask();
-        break;
-    case network_mode::WiFi:
-        return WiFi.subnetMask();
-        break;
-    default:
-        return IPAddress(255, 255, 255, 0);
-    }
+    const NetworkInterface *interface = activeInterface();
+    return interface ? interface->subnetMask() : INADDR_NONE;
 }
 
 IPAddress NetworkSettingsClass::gatewayIP() const
 {
-    switch (_networkMode) {
-    case network_mode::Ethernet:
-        return ETH.gatewayIP();
-        break;
-    case network_mode::WiFi:
-        return WiFi.gatewayIP();
-        break;
-    default:
-        return INADDR_NONE;
-    }
+    const NetworkInterface *interface = activeInterface();
+    return interface ? interface->gatewayIP() : INADDR_NONE;
 }
 
 IPAddress NetworkSettingsClass::dnsIP(const uint8_t dns_no) const
 {
-    switch (_networkMode) {
-    case network_mode::Ethernet:
-        return ETH.dnsIP(dns_no);
-        break;
-    case network_mode::WiFi:
-        return WiFi.dnsIP(dns_no);
-        break;
-    default:
-        return INADDR_NONE;
-    }
+    const NetworkInterface *interface = activeInterface();
+    return interface ? interface->dnsIP(dns_no) : INADDR_NONE;
 }
 
 String NetworkSettingsClass::macAddress() const
 {
-    switch (_networkMode) {
-    case network_mode::Ethernet:
-        return ETH.macAddress();
-        break;
-    case network_mode::WiFi:
-        return WiFi.macAddress();
-        break;
-    default:
-        return "";
-    }
+    const NetworkInterface *interface = activeInterface();
+    return interface ? interface->macAddress() : "";
 }
 
 String NetworkSettingsClass::getHostname()
@@ -466,12 +409,44 @@ String NetworkSettingsClass::getHostname()
 
 bool NetworkSettingsClass::isConnected() const
 {
-    return WiFi.localIP()[0] != 0 || ETH.localIP()[0] != 0;
+    const NetworkInterface *interface = activeInterface();
+    return interface && interface->connected() && interface->localIP() != INADDR_NONE;
 }
 
 network_mode NetworkSettingsClass::NetworkMode() const
 {
     return _networkMode;
+}
+
+NetworkInterface* NetworkSettingsClass::configuredETH() const
+{
+    if (_w5500)
+        return _w5500.get();
+    return &ETH;
+}
+
+NetworkInterface* NetworkSettingsClass::activeInterface() const
+{
+    switch (_networkMode) {
+    case network_mode::Ethernet:
+        return configuredETH();
+    case network_mode::WiFi:
+        return &WiFi.STA;
+    default:
+        return nullptr;
+    }
+}
+
+String NetworkSettingsClass::activeInterfaceName() const
+{
+    switch (_networkMode) {
+    case network_mode::Ethernet:
+        return "ETH";
+    case network_mode::WiFi:
+        return "WiFi STA";
+    default:
+        return "";
+    }
 }
 
 NetworkSettingsClass NetworkSettings;

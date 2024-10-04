@@ -64,6 +64,9 @@ private:
     void handleMDNS();
     void setupMode();
     void NetworkEvent(const WiFiEvent_t event, WiFiEventInfo_t info);
+    NetworkInterface* configuredETH() const;
+    NetworkInterface* activeInterface() const;
+    String activeInterfaceName() const;
 
     Task _loopTask;
 
