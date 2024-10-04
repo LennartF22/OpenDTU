@@ -415,9 +415,6 @@ String NetworkSettingsClass::macAddress() const
 {
     switch (_networkMode) {
     case network_mode::Ethernet:
-        if (_w5500) {
-            return _w5500->macAddress();
-        }
         return ETH.macAddress();
         break;
     case network_mode::WiFi:
