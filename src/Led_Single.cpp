@@ -135,14 +135,7 @@ void LedSingleClass::setLed(const uint8_t ledNo, const bool ledState)
         return;
     }
 
-    const uint32_t currentPWM = ledcRead(analogGetChannel(pin.led[ledNo]));
-    const uint32_t targetPWM = ledState ? pwmTable[config.Led_Single[ledNo].Brightness] : LED_OFF;
-
-    if (currentPWM == targetPWM) {
-        return;
-    }
-
-    analogWrite(pin.led[ledNo], targetPWM);
+    analogWrite(pin.led[ledNo], ledState ? pwmTable[config.Led_Single[ledNo].Brightness] : LED_OFF);
     _ledStateCurrent[ledNo] = ledState;
 }
 
