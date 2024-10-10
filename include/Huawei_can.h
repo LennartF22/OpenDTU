@@ -7,30 +7,6 @@
 #include <mutex>
 #include <TaskSchedulerDeclarations.h>
 
-#ifndef HUAWEI_PIN_MISO
-#define HUAWEI_PIN_MISO 12
-#endif
-
-#ifndef HUAWEI_PIN_MOSI
-#define HUAWEI_PIN_MOSI 13
-#endif
-
-#ifndef HUAWEI_PIN_SCLK
-#define HUAWEI_PIN_SCLK 26
-#endif
-
-#ifndef HUAWEI_PIN_IRQ
-#define HUAWEI_PIN_IRQ 25
-#endif
-
-#ifndef HUAWEI_PIN_CS
-#define HUAWEI_PIN_CS 15
-#endif
-
-#ifndef HUAWEI_PIN_POWER
-#define HUAWEI_PIN_POWER 33
-#endif
-
 #define HUAWEI_MINIMAL_OFFLINE_VOLTAGE 48
 #define HUAWEI_MINIMAL_ONLINE_VOLTAGE 42
 
