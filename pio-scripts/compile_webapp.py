@@ -2,6 +2,7 @@ import os
 import hashlib
 import pickle
 import subprocess
+import shutil
 
 def check_files(directories, filepaths, hash_file):
     old_file_hashes = {}
@@ -33,11 +34,11 @@ def check_files(directories, filepaths, hash_file):
 
     print("INFO: compiling webapp (hang on, this can take a while and there might be little output)...")
 
-    yarn = "yarn"
+    yarn = shutil.which('yarn')
     try:
         subprocess.check_output([yarn, "--version"])
     except FileNotFoundError:
-        yarn = "yarnpkg"
+        yarn = shutil.which('yarnpkg')
         try:
             subprocess.check_output([yarn, "--version"])
         except FileNotFoundError:
