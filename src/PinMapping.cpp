@@ -134,12 +134,20 @@
 #define BATTERY_PIN_TXEN -1
 #endif
 
-#ifndef HUAWEI_PIN_MISO
-#define HUAWEI_PIN_MISO -1
+#ifndef HUAWEI_PIN_TX
+#define HUAWEI_PIN_TX -1
+#endif
+
+#ifndef HUAWEI_PIN_RX
+#define HUAWEI_PIN_RX -1
 #endif
 
 #ifndef HUAWEI_PIN_MOSI
 #define HUAWEI_PIN_MOSI -1
+#endif
+
+#ifndef HUAWEI_PIN_MISO
+#define HUAWEI_PIN_MISO -1
 #endif
 
 #ifndef HUAWEI_PIN_SCLK
@@ -173,8 +181,8 @@
 PinMappingClass PinMapping;
 
 PinMappingClass::PinMappingClass()
+    : _pinMapping {}
 {
-    memset(&_pinMapping, 0x0, sizeof(_pinMapping));
     _pinMapping.nrf24_clk = HOYMILES_PIN_SCLK;
     _pinMapping.nrf24_cs = HOYMILES_PIN_CS;
     _pinMapping.nrf24_en = HOYMILES_PIN_CE;
@@ -226,12 +234,21 @@ PinMappingClass::PinMappingClass()
     _pinMapping.battery_tx = BATTERY_PIN_TX;
     _pinMapping.battery_txen = BATTERY_PIN_TXEN;
 
-    _pinMapping.huawei_miso = HUAWEI_PIN_MISO;
-    _pinMapping.huawei_mosi = HUAWEI_PIN_MOSI;
-    _pinMapping.huawei_clk = HUAWEI_PIN_SCLK;
-    _pinMapping.huawei_cs = HUAWEI_PIN_CS;
-    _pinMapping.huawei_irq = HUAWEI_PIN_IRQ;
-    _pinMapping.huawei_power = HUAWEI_PIN_POWER;
+#if HUAWEI_PIN_TX >= 0 && HUAWEI_PIN_RX >= 0
+    _pinMapping.huawei.can = PinMappingCanInternal_t {
+        .tx = HUAWEI_PIN_TX,
+        .rx = HUAWEI_PIN_RX,
+    };
+#elif HUAWEI_PIN_MOSI >= 0 && HUAWEI_PIN_MISO >= 0 && HUAWEI_PIN_SCLK >= 0 && HUAWEI_PIN_CS >= 0 && HUAWEI_PIN_IRQ >= 0
+    _pinMapping.huawei.can = PinMappingCanMcp2515_t {
+        .mosi = HUAWEI_PIN_MOSI,
+        .miso = HUAWEI_PIN_MISO,
+        .sclk = HUAWEI_PIN_SCLK,
+        .cs = HUAWEI_PIN_CS,
+        .irq = HUAWEI_PIN_IRQ,
+    };
+#endif
+    _pinMapping.huawei.power = HUAWEI_PIN_POWER;
 
     _pinMapping.powermeter_rx = POWERMETER_PIN_RX;
     _pinMapping.powermeter_tx = POWERMETER_PIN_TX;
@@ -311,12 +328,30 @@ bool PinMappingClass::init(const String& deviceMapping)
             _pinMapping.battery_tx = doc[i]["battery"]["tx"] | BATTERY_PIN_TX;
             _pinMapping.battery_txen = doc[i]["battery"]["txen"] | BATTERY_PIN_TXEN;
 
-            _pinMapping.huawei_miso = doc[i]["huawei"]["miso"] | HUAWEI_PIN_MISO;
-            _pinMapping.huawei_mosi = doc[i]["huawei"]["mosi"] | HUAWEI_PIN_MOSI;
-            _pinMapping.huawei_clk = doc[i]["huawei"]["clk"] | HUAWEI_PIN_SCLK;
-            _pinMapping.huawei_irq = doc[i]["huawei"]["irq"] | HUAWEI_PIN_IRQ;
-            _pinMapping.huawei_cs = doc[i]["huawei"]["cs"] | HUAWEI_PIN_CS;
-            _pinMapping.huawei_power = doc[i]["huawei"]["power"] | HUAWEI_PIN_POWER;
+            int8_t huawei_tx = doc[i]["huawei"]["tx"] | HUAWEI_PIN_TX;
+            int8_t huawei_rx = doc[i]["huawei"]["rx"] | HUAWEI_PIN_RX;
+            int8_t huawei_mosi = doc[i]["huawei"]["mosi"] | HUAWEI_PIN_MOSI;
+            int8_t huawei_miso = doc[i]["huawei"]["miso"] | HUAWEI_PIN_MISO;
+            int8_t huawei_sclk = doc[i]["huawei"]["clk"] | HUAWEI_PIN_SCLK;
+            int8_t huawei_cs = doc[i]["huawei"]["cs"] | HUAWEI_PIN_CS;
+            int8_t huawei_irq = doc[i]["huawei"]["irq"] | HUAWEI_PIN_IRQ;
+            if (huawei_tx >= 0 && huawei_rx >= 0) {
+                _pinMapping.huawei.can = PinMappingCanInternal_t {
+                    .tx = huawei_tx,
+                    .rx = huawei_rx,
+                };
+            } else if (huawei_mosi >= 0 && huawei_miso >= 0 && huawei_sclk >= 0 && huawei_cs >= 0 && huawei_irq >= 0) {
+                _pinMapping.huawei.can = PinMappingCanMcp2515_t {
+                    .mosi = huawei_mosi,
+                    .miso = huawei_miso,
+                    .sclk = huawei_sclk,
+                    .cs = huawei_cs,
+                    .irq = huawei_irq,
+                };
+            } else {
+                _pinMapping.huawei.can.emplace<std::monostate>();
+            }
+            _pinMapping.huawei.power = doc[i]["huawei"]["power"] | HUAWEI_PIN_POWER;
 
             _pinMapping.powermeter_rx = doc[i]["powermeter"]["rx"] | POWERMETER_PIN_RX;
             _pinMapping.powermeter_tx = doc[i]["powermeter"]["tx"] | POWERMETER_PIN_TX;
@@ -354,10 +389,7 @@ bool PinMappingClass::isValidEthConfig() const
 
 bool PinMappingClass::isValidHuaweiConfig() const
 {
-    return _pinMapping.huawei_miso >= 0
-        && _pinMapping.huawei_mosi >= 0
-        && _pinMapping.huawei_clk >= 0
-        && _pinMapping.huawei_irq >= 0
-        && _pinMapping.huawei_cs >= 0
-        && _pinMapping.huawei_power >= 0;
+    if (std::holds_alternative<std::monostate>(_pinMapping.huawei.can))
+        return false;
+    return _pinMapping.huawei.power >= 0;
 }

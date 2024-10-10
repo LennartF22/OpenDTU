@@ -4,11 +4,30 @@
 #include <Arduino.h>
 #include <ETH.h>
 #include <stdint.h>
+#include <variant>
 
 #define PINMAPPING_FILENAME "/pin_mapping.json"
 #define PINMAPPING_LED_COUNT 2
 
 #define MAPPING_NAME_STRLEN 31
+
+struct PinMappingCanInternal_t {
+    int8_t tx;
+    int8_t rx;
+};
+
+struct PinMappingCanMcp2515_t {
+    int8_t mosi;
+    int8_t miso;
+    int8_t sclk;
+    int8_t cs;
+    int8_t irq;
+};
+
+struct PinMappingHuawei_t {
+    std::variant<std::monostate, PinMappingCanInternal_t, PinMappingCanMcp2515_t> can;
+    int8_t power;
+};
 
 struct PinMapping_t {
     char name[MAPPING_NAME_STRLEN + 1];
@@ -47,16 +66,14 @@ struct PinMapping_t {
     int8_t victron_rx2;
     int8_t victron_tx3;
     int8_t victron_rx3;
+
     int8_t battery_rx;
     int8_t battery_rxen;
     int8_t battery_tx;
     int8_t battery_txen;
-    int8_t huawei_miso;
-    int8_t huawei_mosi;
-    int8_t huawei_clk;
-    int8_t huawei_irq;
-    int8_t huawei_cs;
-    int8_t huawei_power;
+
+    PinMappingHuawei_t huawei;
+
     int8_t powermeter_rx;
     int8_t powermeter_tx;
     int8_t powermeter_dere;

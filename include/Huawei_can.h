@@ -6,6 +6,7 @@
 #include <mcp_can.h>
 #include <mutex>
 #include <TaskSchedulerDeclarations.h>
+#include "PinMapping.h"
 
 #define HUAWEI_MINIMAL_OFFLINE_VOLTAGE 48
 #define HUAWEI_MINIMAL_ONLINE_VOLTAGE 42
@@ -95,8 +96,8 @@ private:
 
 class HuaweiCanClass {
 public:
-    void init(Scheduler& scheduler, uint8_t huawei_miso, uint8_t huawei_mosi, uint8_t huawei_clk, uint8_t huawei_irq, uint8_t huawei_cs, uint8_t huawei_power);
-    void updateSettings(uint8_t huawei_miso, uint8_t huawei_mosi, uint8_t huawei_clk, uint8_t huawei_irq, uint8_t huawei_cs, uint8_t huawei_power);
+    void init(Scheduler& scheduler, const PinMappingHuawei_t& pin);
+    void updateSettings(const PinMappingHuawei_t& pin);
     void setValue(float in, uint8_t parameterType);
     void setMode(uint8_t mode);
 

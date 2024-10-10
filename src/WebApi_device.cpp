@@ -101,12 +101,19 @@ void WebApiDeviceClass::onDeviceAdminGet(AsyncWebServerRequest* request)
     batteryPinObj["txen"] = pin.battery_txen;
 
     auto huaweiPinObj = curPin["huawei"].to<JsonObject>();
-    huaweiPinObj["miso"] = pin.huawei_miso;
-    huaweiPinObj["mosi"] = pin.huawei_mosi;
-    huaweiPinObj["clk"] = pin.huawei_clk;
-    huaweiPinObj["irq"] = pin.huawei_irq;
-    huaweiPinObj["cs"] = pin.huawei_cs;
-    huaweiPinObj["power"] = pin.huawei_power;
+    if (std::holds_alternative<PinMappingCanInternal_t>(pin.huawei.can)) {
+        const PinMappingCanInternal_t& can = std::get<PinMappingCanInternal_t>(pin.huawei.can);
+        huaweiPinObj["tx"] = can.tx;
+        huaweiPinObj["rx"] = can.rx;
+    } else if (std::holds_alternative<PinMappingCanMcp2515_t>(pin.huawei.can)) {
+        const PinMappingCanMcp2515_t& can = std::get<PinMappingCanMcp2515_t>(pin.huawei.can);
+        huaweiPinObj["mosi"] = can.mosi;
+        huaweiPinObj["miso"] = can.miso;
+        huaweiPinObj["clk"] = can.sclk;
+        huaweiPinObj["cs"] = can.cs;
+        huaweiPinObj["irq"] = can.irq;
+    }
+    huaweiPinObj["power"] = pin.huawei.power;
 
     WebApi.sendJsonResponse(request, response, __FUNCTION__, __LINE__);
 }

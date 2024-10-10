@@ -231,8 +231,8 @@ void WebApiHuaweiClass::onAdminPost(AsyncWebServerRequest* request)
     if (config.Huawei.Enabled) {
         MessageOutput.println("Initialize Huawei AC charger interface... ");
         if (PinMapping.isValidHuaweiConfig()) {
-            MessageOutput.printf("Huawei AC-charger miso = %d, mosi = %d, clk = %d, irq = %d, cs = %d, power_pin = %d\r\n", pin.huawei_miso, pin.huawei_mosi, pin.huawei_clk, pin.huawei_irq, pin.huawei_cs, pin.huawei_power);
-            HuaweiCan.updateSettings(pin.huawei_miso, pin.huawei_mosi, pin.huawei_clk, pin.huawei_irq, pin.huawei_cs, pin.huawei_power);
+            //MessageOutput.printf("Huawei AC-charger miso = %d, mosi = %d, clk = %d, irq = %d, cs = %d, power_pin = %d\r\n", pin.huawei_miso, pin.huawei_mosi, pin.huawei_clk, pin.huawei_irq, pin.huawei_cs, pin.huawei_power);
+            HuaweiCan.updateSettings(pin.huawei);
             MessageOutput.println("done");
         } else {
             MessageOutput.println("Invalid pin config");

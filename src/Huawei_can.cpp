@@ -201,21 +201,27 @@ void HuaweiCanCommClass::sendRequest()
 // Huawei CAN Controller
 // *******************************************************
 
-void HuaweiCanClass::init(Scheduler& scheduler, uint8_t huawei_miso, uint8_t huawei_mosi, uint8_t huawei_clk, uint8_t huawei_irq, uint8_t huawei_cs, uint8_t huawei_power)
+void HuaweiCanClass::init(Scheduler& scheduler, const PinMappingHuawei_t& pin)
 {
     scheduler.addTask(_loopTask);
     _loopTask.setCallback(std::bind(&HuaweiCanClass::loop, this));
     _loopTask.setIterations(TASK_FOREVER);
     _loopTask.enable();
 
-    this->updateSettings(huawei_miso, huawei_mosi, huawei_clk, huawei_irq, huawei_cs, huawei_power);
+    this->updateSettings(pin);
 }
 
-void HuaweiCanClass::updateSettings(uint8_t huawei_miso, uint8_t huawei_mosi, uint8_t huawei_clk, uint8_t huawei_irq, uint8_t huawei_cs, uint8_t huawei_power)
+void HuaweiCanClass::updateSettings(const PinMappingHuawei_t& pin)
 {
     if (_initialized) {
       return;
     }
+
+    if (!std::holds_alternative<PinMappingCanMcp2515_t>(pin.can)) {
+        MessageOutput.println("[HuaweiCanClass::init] Unsupported interface for Huawei CAN communication...");
+        return;
+    }
+    const PinMappingCanMcp2515_t& can = std::get<PinMappingCanMcp2515_t>(pin.can);
 
     const CONFIG_T& config = Configuration.get();
 
@@ -223,14 +229,14 @@ void HuaweiCanClass::updateSettings(uint8_t huawei_miso, uint8_t huawei_mosi, ui
         return;
     }
 
-    if (!HuaweiCanComm.init(huawei_miso, huawei_mosi, huawei_clk, huawei_irq, huawei_cs, config.Huawei.CAN_Controller_Frequency)) {
+    if (!HuaweiCanComm.init(can.miso, can.mosi, can.sclk, can.irq, can.cs, config.Huawei.CAN_Controller_Frequency)) {
       MessageOutput.println("[HuaweiCanClass::init] Error Initializing Huawei CAN communication...");
       return;
     };
 
-    pinMode(huawei_power, OUTPUT);
-    digitalWrite(huawei_power, HIGH);
-    _huaweiPower = huawei_power;
+    pinMode(pin.power, OUTPUT);
+    digitalWrite(pin.power, HIGH);
+    _huaweiPower = pin.power;
 
     if (config.Huawei.Auto_Power_Enabled) {
       _mode = HUAWEI_MODE_AUTO_INT;
